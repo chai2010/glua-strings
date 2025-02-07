@@ -7,8 +7,8 @@ package strings
 import (
 	"strings"
 
-	"github.com/chai2010/glua-helper"
-	"github.com/yuin/gopher-lua"
+	helper "github.com/chai2010/glua-helper"
+	lua "github.com/yuin/gopher-lua"
 )
 
 func Preload(L *lua.LState) {
@@ -136,10 +136,18 @@ var stringsFuncs = map[string]lua.LGFunction{
 		return helper.RetInt(L, ret)
 	},
 	"Join": func(L *lua.LState) int {
-		s := helper.CheckStringList(L, 1)
-		t := L.CheckString(2)
+		tbl := L.CheckTable(1)
+		sep := L.CheckString(2)
 
-		ret := strings.Join(s, t)
+		strs := make([]string, 0, tbl.Len())
+
+		tbl.ForEach(func(_, value lua.LValue) {
+			if str, ok := value.(lua.LString); ok {
+				strs = append(strs, string(str))
+			}
+		})
+
+		ret := strings.Join(strs, sep)
 		return helper.RetString(L, ret)
 	},
 	"LastIndex": func(L *lua.LState) int {
@@ -167,7 +175,7 @@ var stringsFuncs = map[string]lua.LGFunction{
 		s := L.CheckString(1)
 		fn := L.CheckFunction(2)
 
-		ret := strings.IndexFunc(s, func(r rune) bool {
+		ret := strings.LastIndexFunc(s, func(r rune) bool {
 			return callFunc_Rune_ret_Bool(
 				L, fn, lua.LNumber(r),
 			)
@@ -223,6 +231,11 @@ var stringsFuncs = map[string]lua.LGFunction{
 		t := L.CheckString(2)
 		n := L.CheckInt(3)
 
+		if n == 0 {
+			L.Push(lua.LNil)
+			return 1
+		}
+
 		ret := strings.SplitAfterN(s, t, n)
 		return helper.RetStringList(L, ret)
 	},
@@ -230,6 +243,11 @@ var stringsFuncs = map[string]lua.LGFunction{
 		s := L.CheckString(1)
 		t := L.CheckString(2)
 		n := L.CheckInt(3)
+
+		if n == 0 {
+			L.Push(lua.LNil)
+			return 1
+		}
 
 		ret := strings.SplitN(s, t, n)
 		return helper.RetStringList(L, ret)
